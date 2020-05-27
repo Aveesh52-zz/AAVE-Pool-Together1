@@ -5,7 +5,6 @@ import Home from './Home.js';
 import { Route ,Switch } from 'react-router-dom';
 import Pool from './Pool.js';
 
-
 class App extends Component {
 
   render() {

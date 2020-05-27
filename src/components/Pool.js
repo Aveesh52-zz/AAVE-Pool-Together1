@@ -2,8 +2,14 @@ import React, { Component } from 'react';
 
 import Web3 from 'web3'; 
 import './Pool.css';
-
 import dai from '../Dai.png';
+
+
+import IntermediateFactory from '../abis/IntermediateFactory.json'
+import Mocklendingpool from '../abis/mocklendingpool.json'
+import mockatoken from '../abis/mockatoken.json'
+
+
 
 import pool from '../pooltogether.png';
 
@@ -20,53 +26,103 @@ class Zap extends Component {
   async loadBlockchainData() {
   const web3 = window.web3
 
-  const accounts = await web3.eth.getAccounts()
+  
+  const accounts = await this.state.web3.eth.getAccounts()
   this.setState({ account: accounts[0] })
   console.log(this.state.account);
 
-  const ethBalance = await web3.eth.getBalance(this.state.account)
-  this.setState({ ethBalance })
-  console.log(ethBalance);
   
+  const ethBalance = await this.state.web3.eth.getBalance(this.state.account)
+  this.setState({ ethBalance })
+  console.log(this.state.ethBalance);
+
+
+  
+  const contractAddress = "0x05356bff5e15d217586eaa64cd8ff018872be1e6"
+  const intermediateFactory = new this.state.web3.eth.Contract(IntermediateFactory.abi, contractAddress);
+  
+  this.setState({intermediateFactory});
+  console.log(this.state.intermediateFactory);
  
- 
+
+  let result1; 
+  result1 =  await this.state.intermediateFactory.methods.getIntermediateUser(this.state.account).call({ from: this.state.account })
+  console.log(result1);
+  this.setState({result1});
+
+
+  if(!result1){
+    let result2;
+    result2 =  await this.state.intermediateFactory.methods.createIntermediate("0xb2315367a090b43b468a55a325eb3f53bccf3d35",this.state.account).send({ from: this.state.account })
+    console.log(result2);
+  }
+
+
+    const contractAddress1 = "0x4F96Fe3b7A6Cf9725f59d353F723c1bDb64CA6Aa"
+    const mocklendingpool = this.state.web3.eth.Contract(Mocklendingpool.abi, contractAddress1)
+    this.setState({mocklendingpool});
+
+    console.log(this.state.mocklendingpool);
+
+     
+    
+   
+
+
+}
+
+
+
+async loadWeb3() {
+  if (window.ethereum) {
+    const web3 = new Web3(window.ethereum)
+    await window.ethereum.enable()
+    this.setState({ web3 })
+  }
+  else if (window.web3) {
+    const web3 = new Web3(window.web3.currentProvider)
+    this.setState({ web3 })
+  }
+  else {
+    window.alert('Non-Ethereum browser detected. You should consider trying MetaMask!')
+  }
 }
 
 
 
 
 
-  async loadWeb3() {
-    if (window.ethereum) {
-      window.web3 = new Web3(window.ethereum)
-      await window.ethereum.enable()
-    }
-    else if (window.web3) {
-      window.web3 = new Web3(window.web3.currentProvider)
-    }
-    else {
-      window.alert('Non-Ethereum browser detected. You should consider trying MetaMask!')
-    }
-  }
 
 
 
 
 
   constructor(props) {
-    super(props)
+    super(props);
+    this.state = {
+     account:'',
+     result1:'0',
+     intermediateFactory:{},
+     mocklendingpool:{},
+     mockatoken:{},
+     intermediate:{},
+     web3:{},
+     ethBalance:'0'
+    }
    
   }
+
+
+  
+
+
   
   render() {
 
 
     return (
 
-      <form className="mb-3" onSubmit={(event) => {
-        event.preventDefault()
-        
-      }}>
+     
       <div>
   
         <div className="container-fluid mt-5">
@@ -101,7 +157,7 @@ class Zap extends Component {
             </div>
             <div className="zap">
             
-      <button type="submit" className="button1">DEPOSIT</button>
+      <button type="submit" className="button1" >DEPOSIT</button>
             </div>
           </div>
 
@@ -178,7 +234,6 @@ class Zap extends Component {
           </div>
         </div>
       </div>
-      </form>
     );
   };
 }
