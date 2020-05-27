@@ -5,9 +5,12 @@ import './Pool.css';
 import dai from '../Dai.png';
 
 
-import IntermediateFactory from '../abis/IntermediateFactory.json'
+import Intermediate from '../abis/Intermediate.json'
+import ProxyFactory from '../abis/ProxyFactory.json'
 import Mocklendingpool from '../abis/mocklendingpool.json'
 import mockatoken from '../abis/mockatoken.json'
+import Dai from '../abis/ERC20.json'
+import Pool from '../abis/PoolTogether.json'
 
 
 
@@ -16,11 +19,8 @@ import pool from '../pooltogether.png';
 class Zap extends Component {
 
   async componentWillMount() {
- 
     await this.loadWeb3()
     await this.loadBlockchainData()
-
-
   }
 
   async loadBlockchainData() {
@@ -30,52 +30,61 @@ class Zap extends Component {
   const accounts = await this.state.web3.eth.getAccounts()
   this.setState({ account: accounts[0] })
   console.log(this.state.account);
-
   
-  const ethBalance = await this.state.web3.eth.getBalance(this.state.account)
-  this.setState({ ethBalance })
-  console.log(this.state.ethBalance);
-
-
-  
-  const contractAddress = "0x05356bff5e15d217586eaa64cd8ff018872be1e6"
-  const intermediateFactory = new this.state.web3.eth.Contract(IntermediateFactory.abi, contractAddress);
+  const factoryAddress = "0x05356bff5e15d217586eaa64cd8ff018872be1e6"
+  const intermediateFactory = new this.state.web3.eth.Contract(ProxyFactory, factoryAddress);
   
   this.setState({intermediateFactory});
-  console.log(this.state.intermediateFactory);
  
 
-  let result1; 
-  result1 =  await this.state.intermediateFactory.methods.getIntermediateUser(this.state.account).call({ from: this.state.account })
-  console.log(result1);
-  this.setState({result1});
+  let getProxy; 
+  getProxy =  await this.state.intermediateFactory.methods.getIntermediateUser(this.state.account).call({ from: this.state.account })
+  console.log(getProxy);
+  this.setState({getProxy});
 
 
-  if(!result1){
-    let result2;
-    result2 =  await this.state.intermediateFactory.methods.createIntermediate("0xb2315367a090b43b468a55a325eb3f53bccf3d35",this.state.account).send({ from: this.state.account })
-    console.log(result2);
+  if(!getProxy){
+    const targetAddress = "0xb2315367a090b43b468a55a325eb3f53bccf3d35"
+    await this.state.intermediateFactory.methods.createIntermediate(targetAddress, this.state.account).send({ from: this.state.account })
   }
 
 
-    const contractAddress1 = "0x7Fdee497283233794210F91093Ba85ceB90f9066"
-    const mocklendingpool = new this.state.web3.eth.Contract(Mocklendingpool.abi, contractAddress1)
+    const mockLendingAddress = "0x7Fdee497283233794210F91093Ba85ceB90f9066"
+    const mocklendingpool = new this.state.web3.eth.Contract(Mocklendingpool, mockLendingAddress)
     this.setState({mocklendingpool});
 
-    console.log(this.state.mocklendingpool);
+    const daiAddress = "0x4F96Fe3b7A6Cf9725f59d353F723c1bDb64CA6Aa"
+    const daiContract = new this.state.web3.eth.Contract(Dai.abi, daiAddress)
+    this.setState({daiContract});
 
-await this.state.mocklendingpool.methods.approve("0x4F96Fe3b7A6Cf9725f59d353F723c1bDb64CA6Aa","100000000000000000000000000000000000000000000000000000000000").send({ from: this.state.account })
-await this.state.mocklendingpool.methods.deposit("0x1A73C6c31d4013E1E1A02bb3D6C786d0d443920a","100000000000",1).send({ from: this.state.account })
+    const mockAtokenAddress = "0x1A73C6c31d4013E1E1A02bb3D6C786d0d443920a"
+    const mockAtoken = new this.state.web3.eth.Contract(mockatoken, mockAtokenAddress)
+    this.setState({mockAtoken});
+
+    const proxyContract = new this.state.web3.eth.Contract(Intermediate, getProxy)
+    this.setState({proxyContract});
+
+    const daiPoolAddress = "0xC3a62C8Af55c59642071bC171Ebd05Eb2479B663";
+    const daiPoolContract = new this.state.web3.eth.Contract(Pool, daiPoolAddress)
+    this.setState({daiPoolAddress});
     
+    // Approving Mock Lending Pool
+    await this.state.daiContract.methods.approve(mockLendingAddress,"100000000000000000000000000000000000000000000000000000000000").send({ from: this.state.account })
+    // Calling Deposit in Mock Lending Pool
+    await this.state.mocklendingpool.methods.deposit(mockAtokenAddress,"100000000000",1).send({ from: this.state.account })
+    // Calling Redirect to proxy
+    await this.state.mockAtoken.methods.redirectInterestStream(getProxy).send({ from: this.state.account })
 
+    // Calling Invest in proxy
+    await this.state.proxyContract.invest().send({ from: this.state.account })
+    // Calling Redeem in proxy
+    await this.state.proxyContract.redeem().send({ from: this.state.account })
 
-
-
-     
-    
-   
-
-
+    // Get Current Draw
+    const drawId = await this.state.daiPoolAddress.currentOpenDrawId().call({ from: this.state.account })
+    // Get Draw Winner
+    const drawDetails = await this.state.daiPoolAddress.getDraw(drawId).call({ from: this.state.account })
+    console.log(drawDetails.winner)
 }
 
 
@@ -96,14 +105,6 @@ async loadWeb3() {
 }
 
 
-
-
-
-
-
-
-
-
   constructor(props) {
     super(props);
     this.state = {
@@ -113,10 +114,6 @@ async loadWeb3() {
     }
    
   }
-
-
-  
-
 
   
   render() {
