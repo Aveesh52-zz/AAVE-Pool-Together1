@@ -9,7 +9,7 @@ class App extends Component {
 
   render() {
     return (
-      <div>
+      <div className="container9">
         <Switch>
          <Route path='/' exact component={Home}/> 
          <Route path='/pool' exact component={Pool}/>

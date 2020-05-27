@@ -16,6 +16,20 @@ import Pool from '../abis/PoolTogether.json'
 
 import pool from '../pooltogether.png';
 
+
+
+
+const mockLendingAddress = "0x7Fdee497283233794210F91093Ba85ceB90f9066"
+const targetAddress = "0xb2315367a090b43b468a55a325eb3f53bccf3d35"
+
+const daiAddress = "0x4F96Fe3b7A6Cf9725f59d353F723c1bDb64CA6Aa"
+
+const mockAtokenAddress = "0x1A73C6c31d4013E1E1A02bb3D6C786d0d443920a"
+
+
+const factoryAddress = "0x05356bff5e15d217586eaa64cd8ff018872be1e6"
+const daiPoolAddress = "0xC3a62C8Af55c59642071bC171Ebd05Eb2479B663";
+
 class Zap extends Component {
 
   async componentWillMount() {
@@ -31,7 +45,6 @@ class Zap extends Component {
   this.setState({ account: accounts[0] })
   console.log(this.state.account);
   
-  const factoryAddress = "0x05356bff5e15d217586eaa64cd8ff018872be1e6"
   const intermediateFactory = new this.state.web3.eth.Contract(ProxyFactory, factoryAddress);
   
   this.setState({intermediateFactory});
@@ -44,47 +57,25 @@ class Zap extends Component {
 
 
   if(!getProxy){
-    const targetAddress = "0xb2315367a090b43b468a55a325eb3f53bccf3d35"
     await this.state.intermediateFactory.methods.createIntermediate(targetAddress, this.state.account).send({ from: this.state.account })
   }
 
-
-    const mockLendingAddress = "0x7Fdee497283233794210F91093Ba85ceB90f9066"
     const mocklendingpool = new this.state.web3.eth.Contract(Mocklendingpool, mockLendingAddress)
     this.setState({mocklendingpool});
 
-    const daiAddress = "0x4F96Fe3b7A6Cf9725f59d353F723c1bDb64CA6Aa"
     const daiContract = new this.state.web3.eth.Contract(Dai.abi, daiAddress)
     this.setState({daiContract});
 
-    const mockAtokenAddress = "0x1A73C6c31d4013E1E1A02bb3D6C786d0d443920a"
     const mockAtoken = new this.state.web3.eth.Contract(mockatoken, mockAtokenAddress)
     this.setState({mockAtoken});
 
     const proxyContract = new this.state.web3.eth.Contract(Intermediate, getProxy)
     this.setState({proxyContract});
 
-    const daiPoolAddress = "0xC3a62C8Af55c59642071bC171Ebd05Eb2479B663";
     const daiPoolContract = new this.state.web3.eth.Contract(Pool, daiPoolAddress)
-    this.setState({daiPoolAddress});
+    this.setState({daiPoolContract});
     
-    // Approving Mock Lending Pool
-    await this.state.daiContract.methods.approve(mockLendingAddress,"100000000000000000000000000000000000000000000000000000000000").send({ from: this.state.account })
-    // Calling Deposit in Mock Lending Pool
-    await this.state.mocklendingpool.methods.deposit(mockAtokenAddress,"100000000000",1).send({ from: this.state.account })
-    // Calling Redirect to proxy
-    await this.state.mockAtoken.methods.redirectInterestStream(getProxy).send({ from: this.state.account })
-
-    // Calling Invest in proxy
-    await this.state.proxyContract.invest().send({ from: this.state.account })
-    // Calling Redeem in proxy
-    await this.state.proxyContract.redeem().send({ from: this.state.account })
-
-    // Get Current Draw
-    const drawId = await this.state.daiPoolAddress.currentOpenDrawId().call({ from: this.state.account })
-    // Get Draw Winner
-    const drawDetails = await this.state.daiPoolAddress.getDraw(drawId).call({ from: this.state.account })
-    console.log(drawDetails.winner)
+   
 }
 
 
@@ -110,9 +101,48 @@ async loadWeb3() {
     this.state = {
      account:'',
      result1:'0',
-     ethBalance:'0'
+     ethBalance:'0',
+     daiContract:{}
     }
    
+  }
+
+
+  deposit = async (etherAmount) => {    
+    let result;
+    console.log(etherAmount);
+    console.log(this.state.daiContract);
+
+    // Approving Mock Lending Pool
+    await this.state.daiContract.methods.approve(mockLendingAddress,"100000000000000000000000000000000000000000000000000000000000").send({ from: this.state.account })
+    // Calling Deposit in Mock Lending Pool
+    await this.state.mocklendingpool.methods.deposit(mockAtokenAddress,etherAmount,1).send({ from: this.state.account })
+    // Calling Redirect to proxy
+    await this.state.mockAtoken.methods.redirectInterestStream(this.state.getProxy).send({ from: this.state.account })
+
+  }
+
+ invest = async () => {
+   
+  console.log(this.state.proxyContract);
+    await this.state.proxyContract.methods.invest().send({ from: this.state.account })
+  }
+  
+
+  redeem = async () => {
+    console.log(this.state.proxyContract);
+    await this.state.proxyContract.methods.redeem().send({ from: this.state.account })
+  }
+
+  draw = async () => {
+      // Get Current Draw
+      const drawId = await this.state.daiPoolContract.methods.currentOpenDrawId().call({ from: this.state.account })
+      var drawId1 = drawId.toNumber()
+      // Get Draw Winner
+      const drawDetails = await this.state.daiPoolContract.methods.getDraw(drawId1).call({ from: this.state.account })
+      console.log(drawDetails.winner)
+      
+      alert("The winner for draw "+drawId1+"  is  "+drawDetails.winner)
   }
 
   
@@ -132,6 +162,16 @@ async loadWeb3() {
               
                 <div className="d-flex justify-content-center">
            <div id="container">
+
+            <form className="mb-3" onSubmit={(event) => {
+                event.preventDefault()
+              let etherAmount;
+               etherAmount = this.input.value;
+        etherAmount = this.state.web3.utils.toWei(etherAmount.toString(), 'Ether')
+        this.deposit(etherAmount);
+
+            }}>
+
            <div className="title">DEPOSIT</div>
 
          
@@ -158,6 +198,8 @@ async loadWeb3() {
             
       <button type="submit" className="button1" >DEPOSIT</button>
             </div>
+
+            </form>
           </div>
 
 
@@ -176,7 +218,7 @@ async loadWeb3() {
             </div>
             <div className="zap">
             
-      <button type="submit" className="button1">INVEST</button>
+      <button type="submit" className="button1" onClick={this.invest}>INVEST</button>
             </div>
           </div>
 
@@ -194,7 +236,7 @@ async loadWeb3() {
             </div>
             <div className="zap">
             
-      <button type="submit" className="button1">REDEEM</button>
+      <button type="submit" className="button1"  onClick={this.redeem}>REDEEM</button>
             </div>
           </div>
 
@@ -202,6 +244,10 @@ async loadWeb3() {
                 
       
 </div>
+
+
+            
+            <button type="submit" className="button4"  onClick={this.draw}>DRAW</button>
         
                 
               </div>
