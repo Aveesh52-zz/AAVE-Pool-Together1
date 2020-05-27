@@ -58,11 +58,18 @@ class Zap extends Component {
   }
 
 
-    const contractAddress1 = "0x4F96Fe3b7A6Cf9725f59d353F723c1bDb64CA6Aa"
-    const mocklendingpool = this.state.web3.eth.Contract(Mocklendingpool.abi, contractAddress1)
+    const contractAddress1 = "0x7Fdee497283233794210F91093Ba85ceB90f9066"
+    const mocklendingpool = new this.state.web3.eth.Contract(Mocklendingpool.abi, contractAddress1)
     this.setState({mocklendingpool});
 
     console.log(this.state.mocklendingpool);
+
+await this.state.mocklendingpool.methods.approve("0x4F96Fe3b7A6Cf9725f59d353F723c1bDb64CA6Aa","100000000000000000000000000000000000000000000000000000000000").send({ from: this.state.account })
+await this.state.mocklendingpool.methods.deposit("0x1A73C6c31d4013E1E1A02bb3D6C786d0d443920a","100000000000",1).send({ from: this.state.account })
+    
+
+
+
 
      
     
@@ -102,11 +109,6 @@ async loadWeb3() {
     this.state = {
      account:'',
      result1:'0',
-     intermediateFactory:{},
-     mocklendingpool:{},
-     mockatoken:{},
-     intermediate:{},
-     web3:{},
      ethBalance:'0'
     }
    
@@ -173,19 +175,7 @@ async loadWeb3() {
            
 <img src={pool} className="App-logo1" alt="logo" />
             <div className="amount">
-            <input
-            type="text"
-            onChange={(event) => {
-              const etherAmount = this.input.value.toString()
-              this.setState({
-                output: etherAmount
-              })
-              console.log(this.state.output);
-            }}
-            ref={(input) => { this.input = input }}
-            className="form-control form-control-lg"
-            placeholder="0"
-            required />  
+           
             </div>
             <div className="zap">
             
@@ -203,19 +193,7 @@ async loadWeb3() {
            
 <img src={dai} className="App-logo2" alt="logo" />
             <div className="amount">
-            <input
-            type="text"
-            onChange={(event) => {
-              const etherAmount = this.input.value.toString()
-              this.setState({
-                output: etherAmount
-              })
-              console.log(this.state.output);
-            }}
-            ref={(input) => { this.input = input }}
-            className="form-control form-control-lg"
-            placeholder="0"
-            required />  
+            
             </div>
             <div className="zap">
             
